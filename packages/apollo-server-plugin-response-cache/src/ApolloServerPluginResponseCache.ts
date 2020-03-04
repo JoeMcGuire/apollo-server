@@ -119,6 +119,7 @@ interface CacheValue {
   data: Record<string, any>;
   cachePolicy: Required<CacheHint>;
   cacheTime: number; // epoch millis, used to calculate Age header
+  extensions?: Record<string, any>;
 }
 
 type CacheKey = BaseCacheKey & ContextualCacheKey;
@@ -177,7 +178,10 @@ export default function plugin(
             requestContext.overallCachePolicy = value.cachePolicy;
             requestContext.metrics.responseCacheHit = true;
             age = Math.round((+new Date() - value.cacheTime) / 1000);
-            return { data: value.data };
+            return {
+              data: value.data,
+              extensions: value.extensions,
+            };
           }
 
           // Call hooks. Save values which will be used in willSendResponse as well.
@@ -262,6 +266,7 @@ export default function plugin(
           }
 
           const data = response.data!;
+          const extensions = response.extensions;
 
           // We're pretty sure that any path that calls willSendResponse with a
           // non-error response will have already called our execute hook above,
@@ -284,6 +289,7 @@ export default function plugin(
               data,
               cachePolicy: overallCachePolicy!,
               cacheTime: +new Date(),
+              extensions,
             };
             const serializedValue = JSON.stringify(value);
             // Note that this function converts key and response to strings before
